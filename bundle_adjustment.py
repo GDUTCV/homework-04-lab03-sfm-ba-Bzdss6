@@ -44,8 +44,23 @@ def compute_ba_residuals(parameters: np.ndarray, intrinsics: np.ndarray, num_cam
     NOTE: DO NOT USE LOOPS 
     HINT: I used np.matmul; np.sum; np.sqrt; np.square, np.concatenate etc.
     """
-    
+    # Extract correspondence 3d points
+    selected_points3d = points3d[points3d_idxs]
 
-    
+    # Homogenerized 3d points
+    homo_3d_points = np.concatenate((selected_points3d, np.ones((selected_points3d.shape[0], 1))), axis=1)
+    homo_3d_points_T = homo_3d_points.T
+
+    # Calculate projection matrix
+    selected_camera_extrinsics  = extrinsics[camera_idxs]
+    projection_matrix  = np.matmul(intrinsics, selected_camera_extrinsics )
+
+    # Reproject the 2d points using corresponding projection matrix
+    projected_2d_points = np.einsum('ijk,ki->ij', projection_matrix , homo_3d_points_T)
+    projected_2d_points /= projected_2d_points[:, -1].reshape((projected_2d_points.shape[0], 1))
+    projected_2d_points = projected_2d_points[:, :-1]
+
+    # Calculate residuals
+    residuals = np.linalg.norm(points2d - projected_2d_points, axis=1)
     """ END YOUR CODE HERE """
     return residuals
